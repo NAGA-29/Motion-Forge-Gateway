@@ -1,0 +1,52 @@
+services:
+  api:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app
+      - ./output:/app/output
+      - tmp-data:/tmp/convert
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_DEBUG=1
+      - FLASK_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # - MAX_FILE_SIZE=52428800  # 50MB in bytes
+      - RATE_LIMIT_REQUESTS=10
+      - RATE_LIMIT_WINDOW=60
+      - CONVERSION_TIMEOUT=300
+      - CACHE_DURATION=3600
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - converter-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - converter-network
+
+volumes:
+  tmp-data:
+  redis-data:
+
+networks:
+  converter-network:
+    driver: bridge
