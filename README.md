@@ -68,6 +68,27 @@ Blender 付属の `bpy` モジュールが必要です。Docker 環境上で次�
 PYTHONPATH=./app python -m unittest discover app/tests
 ```
 
+## 各ファイル形式の仕様リンク
+
+以下の資料を参照することで、フォーマットの詳細構造を確認できます。
+利用可能なパーサーがある場合は併せて記載します。
+
+- **FBX**  
+  - フォーマット: [Autodesk FBX SDK Documentation](https://help.autodesk.com/view/FBX/2019/ENU/)
+  - パーサー: [FBX SDK](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-0)
+
+- **OBJ**  
+  - フォーマット: [Wavefront OBJ Format](https://en.wikipedia.org/wiki/Wavefront_.obj_file)
+  - パーサー: [PyWavefront](https://github.com/pywavefront/PyWavefront)
+
+- **glTF/GLB**  
+  - フォーマット: [Khronos glTF 2.0 Specification](https://github.com/KhronosGroup/glTF)
+  - パーサー: [pygltflib](https://github.com/kcoley/pygltflib)
+
+- **VRM**  
+  - フォーマット: [VRM Specification](https://vrm.dev/en/docs/vrm/vrm_spec/)
+  - パーサー: [Blender VRM Addon](app/addons/vrm_addon.py)
+
 ---
 ## TODO リスト (将来実装予定)
 
