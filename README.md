@@ -1,3 +1,74 @@
+# Blender Converter
+
+## プロジェクト概要
+Blender を利用して 3D モデルを別形式へ変換する Flask ベースの API です。
+Docker 環境で Blender を実行し、アップロードされたモデルを指定の
+フォーマットに変換して返却します。
+
+## セットアップ方法
+
+### Docker ビルドと起動
+```bash
+# イメージをビルド
+docker compose build
+
+# コンテナを起動
+docker compose up
+```
+起動後は `http://localhost:5000` で API が利用できます。
+
+### 単体での Docker 実行例
+```bash
+docker build -t blender-converter .
+docker run -p 5000:5000 blender-converter
+```
+
+## 主要な環境変数
+| 変数 | 説明 | デフォルト |
+|------|------|------------|
+| `REDIS_HOST` | Redis サーバーのホスト名 | `redis` |
+| `REDIS_PORT` | Redis のポート番号 | `6379` |
+| `MAX_FILE_SIZE` | アップロード可能な最大ファイルサイズ (バイト) | `52428800` |
+| `RATE_LIMIT_REQUESTS` | 一定期間内に許可されるリクエスト数 | `10` |
+| `RATE_LIMIT_WINDOW` | レートリミット対象の時間窓(秒) | `60` |
+| `CONVERSION_TIMEOUT` | 変換処理のタイムアウト(秒) | `300` |
+| `CACHE_DURATION` | 変換結果をキャッシュする時間(秒) | `3600` |
+
+## 変換エンドポイント一覧と使用例
+以下はいずれも `POST` でファイルを送信します。変換後のファイルがレスポンスとして返されます。
+
+- `/convert/fbx-to-glb`
+- `/convert/fbx-to-obj`
+- `/convert/fbx-to-gltf`
+- `/convert/fbx-to-vrm`
+- `/convert/vrm-to-glb`
+- `/convert/vrm-to-fbx`
+- `/convert/vrm-to-obj`
+- `/convert/gltf-to-obj`
+- `/convert/gltf-to-fbx`
+- `/convert/gltf-to-vrm`
+- `/convert/glb-to-obj`
+- `/convert/glb-to-fbx`
+- `/convert/glb-to-vrm`
+- `/convert/obj-to-glb`
+- `/convert/obj-to-fbx`
+- `/convert/obj-to-gltf`
+- `/convert/obj-to-vrm`
+
+使用例:
+```bash
+curl -F "file=@model.fbx" \
+     http://localhost:5000/convert/fbx-to-glb \
+     --output model.glb
+```
+
+## テストの実行方法
+Blender 付属の `bpy` モジュールが必要です。Docker 環境上で次のコマンドを実行します。
+```bash
+PYTHONPATH=./app python -m unittest discover app/tests
+```
+
+---
 ## TODO リスト (将来実装予定)
 
 ### パフォーマンスの最適化
