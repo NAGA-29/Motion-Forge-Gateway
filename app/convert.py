@@ -728,6 +728,12 @@ def convert_vrm_to_obj():
     """Convert VRM to OBJ"""
     return handle_conversion(request, 'vrm', 'obj')
 
+@app.route('/convert/vrm-to-gltf', methods=['POST'])
+@rate_limit
+def convert_vrm_to_gltf():
+    """Convert VRM to GLTF"""
+    return handle_conversion(request, 'vrm', 'gltf')
+
 @app.route('/convert/gltf-to-obj', methods=['POST'])
 @rate_limit
 def convert_gltf_to_obj():
@@ -746,6 +752,12 @@ def convert_gltf_to_vrm():
     """Convert GLTF to VRM"""
     return handle_conversion(request, 'gltf', 'vrm')
 
+@app.route('/convert/gltf-to-glb', methods=['POST'])
+@rate_limit
+def convert_gltf_to_glb():
+    """Convert GLTF to GLB"""
+    return handle_conversion(request, 'gltf', 'glb')
+
 @app.route('/convert/glb-to-obj', methods=['POST'])
 @rate_limit
 def convert_glb_to_obj():
@@ -757,6 +769,12 @@ def convert_glb_to_obj():
 def convert_glb_to_fbx():
     """Convert GLB to FBX"""
     return handle_conversion(request, 'glb', 'fbx')
+
+@app.route('/convert/glb-to-gltf', methods=['POST'])
+@rate_limit
+def convert_glb_to_gltf():
+    """Convert GLB to GLTF"""
+    return handle_conversion(request, 'glb', 'gltf')
 
 @app.route('/convert/glb-to-vrm', methods=['POST'])
 @rate_limit
