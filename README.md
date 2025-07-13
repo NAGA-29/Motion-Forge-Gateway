@@ -58,12 +58,15 @@ docker compose up
 - `/convert/vrm-to-glb`
 - `/convert/vrm-to-fbx`
 - `/convert/vrm-to-obj`
+- `/convert/vrm-to-gltf`
 - `/convert/gltf-to-obj`
 - `/convert/gltf-to-fbx`
 - `/convert/gltf-to-vrm`
+- `/convert/gltf-to-glb`
 - `/convert/glb-to-obj`
 - `/convert/glb-to-fbx`
 - `/convert/glb-to-vrm`
+- `/convert/glb-to-gltf`
 - `/convert/obj-to-glb`
 - `/convert/obj-to-fbx`
 - `/convert/obj-to-gltf`
