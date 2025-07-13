@@ -165,17 +165,23 @@ def validate_file_format(file, format):
     return True, None
 
 def validate_file_size(file):
-    """Validate file size"""
+    """Validate file size
+
+    Returns a tuple ``(success, error_message, too_large)`` where ``too_large``
+    is ``True`` when the uploaded file exceeds ``MAX_FILE_SIZE``. This flag
+    allows callers to distinguish between an oversized upload and other
+    validation failures.
+    """
     file.seek(0, os.SEEK_END)
     size = file.tell()
     file.seek(0)
-    
+
     if size > MAX_FILE_SIZE:
-        return False, f"File size exceeds maximum limit of {MAX_FILE_SIZE/1024/1024}MB"
+        return False, f"File size exceeds maximum limit of {MAX_FILE_SIZE/1024/1024}MB", True
     elif size == 0:
-        return False, "File is empty"
-        
-    return True, None
+        return False, "File is empty", False
+
+    return True, None, False
 
 def clear_scene():
     """Clear the current scene"""
@@ -480,10 +486,11 @@ def handle_conversion(request, input_format, output_format):
             return jsonify({"error": error}), 400
             
         # Validate file size
-        success, error = validate_file_size(file)
+        success, error, too_large = validate_file_size(file)
         if not success:
             logger.error(f"File size validation failed: {error}")
-            return jsonify({"error": error}), 400
+            status_code = 413 if too_large else 400
+            return jsonify({"error": error}), status_code
         
         # Create output directory if it doesn't exist
         output_dir = '/app/output'
