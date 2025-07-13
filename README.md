@@ -74,10 +74,15 @@ docker compose up
 
 使用例:
 ```bash
-curl -F "file=@model.fbx" \
-     http://localhost:5000/convert/fbx-to-glb \
-     --output model.glb
+    curl -F "file=@model.fbx" \
+         http://localhost:5000/convert/fbx-to-glb \
+         --output model.glb
 ```
+
+## Swagger UI
+flasgger により Swagger ドキュメントが自動生成されます。
+コンテナ起動後は `http://localhost:5000/apidocs/` で
+API ドキュメントを閲覧できます。
 
 ## テストの実行方法
 Blender 付属の `bpy` モジュールが必要です。Docker 環境上で次のコマンドを実行します。
@@ -141,7 +146,7 @@ PYTHONPATH=./app python -m unittest discover app/tests
 ### その他の機能
 - [ ] JSON形式の構造化ログ出力
 - [ ] 拡張されたヘルスチェックエンドポイント
-- [ ] Swagger/OpenAPIによるAPI自動ドキュメント生成
+- [x] Swagger/OpenAPIによるAPI自動ドキュメント生成
 - [ ] 変換プロセスの進捗モニタリング機能
 - [ ] メール通知機能
 - [ ] バッチ処理機能
