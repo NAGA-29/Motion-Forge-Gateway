@@ -24,7 +24,7 @@ from werkzeug.utils import secure_filename
 from app.config import get_settings
 from app.utils.logger import AppLogger
 
-settings = get_settings()
+app_settings = get_settings()
 
 # Configure logging
 logger = AppLogger.get_logger(__name__)
@@ -37,13 +37,13 @@ swagger = Swagger(app)
 # Environment helpers
 def is_local_env() -> bool:
     """Return True if running in the local environment."""
-    return settings.is_local()
+    return app_settings.is_local()
 
 
 # Redis connection for rate limiting and caching
 redis_client = redis.Redis(
-    host=settings.redis_host,
-    port=int(settings.redis_port),
+    host=app_settings.redis_host,
+    port=int(app_settings.redis_port),
     db=0,
     decode_responses=True,
     socket_connect_timeout=5,
@@ -51,11 +51,11 @@ redis_client = redis.Redis(
 )
 
 # Configuration from environment variables
-MAX_FILE_SIZE = settings.max_file_size
-RATE_LIMIT_REQUESTS = settings.rate_limit_requests
-RATE_LIMIT_WINDOW = settings.rate_limit_window
-CONVERSION_TIMEOUT = settings.conversion_timeout
-CACHE_DURATION = settings.cache_duration
+MAX_FILE_SIZE = app_settings.max_file_size
+RATE_LIMIT_REQUESTS = app_settings.rate_limit_requests
+RATE_LIMIT_WINDOW = app_settings.rate_limit_window
+CONVERSION_TIMEOUT = app_settings.conversion_timeout
+CACHE_DURATION = app_settings.cache_duration
 
 # Supported file formats and their MIME types
 SUPPORTED_FORMATS = {
