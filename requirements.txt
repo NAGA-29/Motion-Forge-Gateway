@@ -1,0 +1,9 @@
+Flask
+requests
+pillow
+numpy
+urllib3
+redis
+flasgger
+flake8
+ruff
