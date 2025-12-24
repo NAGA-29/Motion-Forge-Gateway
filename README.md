@@ -90,7 +90,7 @@ docker compose up
 
 ## Swagger UI
 flasgger により Swagger ドキュメントが自動生成されます。
-コンテナ起動後は `http://localhost:5000/apidocs/` で
+コンテナ起動後は `http://localhost:5000/apidocs` で
 API ドキュメントを閲覧できます。
 
 ## テストの実行方法
