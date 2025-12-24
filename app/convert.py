@@ -63,7 +63,8 @@ SUPPORTED_FORMATS = {
     'obj': ['application/x-tgif', 'text/plain', 'application/octet-stream'],
     'gltf': ['model/gltf+json', 'application/json'],
     'glb': ['model/gltf-binary'],
-    'vrm': ['application/octet-stream', 'model/gltf-binary']
+    'vrm': ['application/octet-stream', 'model/gltf-binary', 'model/vrml'],
+    'bvh': ['application/octet-stream']
 }
 
 def conversion_doc(input_format: str, output_format: str) -> dict:
@@ -321,6 +322,8 @@ def import_file(input_path, file_format):
             if not success:
                 return False, error
             bpy.ops.import_scene.vrm(filepath=input_path)
+        elif file_format == 'bvh':
+            bpy.ops.import_anim.bvh(filepath=input_path)
         else:
             return False, f"Unsupported input format: {file_format}"
         
@@ -353,6 +356,10 @@ def export_file(output_path, file_format):
             if not success:
                 return False, error
             bpy.ops.export_scene.vrm(filepath=output_path)
+        elif file_format == 'bvh':
+            if not bpy.data.actions:
+                return False, "No animation data found to export to BVH."
+            bpy.ops.export_anim.bvh(filepath=output_path)
         else:
             return False, f"Unsupported output format: {file_format}"
             
@@ -817,15 +824,10 @@ def convert_gltf_to_glb():
 
 @app.route('/convert/glb-to-gltf', methods=['POST'])
 @rate_limit
+@swag_from(conversion_doc('glb', 'gltf'))
 def convert_glb_to_gltf():
     """Convert GLB to GLTF"""
     return handle_conversion(request, 'glb', 'gltf')
-
-@app.route('/convert/vrm-to-gltf', methods=['POST'])
-@rate_limit
-def convert_vrm_to_gltf():
-    """Convert VRM to GLTF"""
-    return handle_conversion(request, 'vrm', 'gltf')
 
 @app.route('/convert/glb-to-obj', methods=['POST'])
 @rate_limit
@@ -840,13 +842,6 @@ def convert_glb_to_obj():
 def convert_glb_to_fbx():
     """Convert GLB to FBX"""
     return handle_conversion(request, 'glb', 'fbx')
-
-@app.route('/convert/glb-to-gltf', methods=['POST'])
-@rate_limit
-@swag_from(conversion_doc('glb', 'gltf'))
-def convert_glb_to_gltf():
-    """Convert GLB to GLTF"""
-    return handle_conversion(request, 'glb', 'gltf')
 
 @app.route('/convert/glb-to-vrm', methods=['POST'])
 @rate_limit
@@ -882,6 +877,76 @@ def convert_obj_to_gltf():
 def convert_obj_to_vrm():
     """Convert OBJ to VRM"""
     return handle_conversion(request, 'obj', 'vrm')
+
+@app.route('/convert/bvh-to-fbx', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('bvh', 'fbx'))
+def convert_bvh_to_fbx():
+    """Convert BVH to FBX"""
+    return handle_conversion(request, 'bvh', 'fbx')
+
+@app.route('/convert/bvh-to-obj', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('bvh', 'obj'))
+def convert_bvh_to_obj():
+    """Convert BVH to OBJ"""
+    return handle_conversion(request, 'bvh', 'obj')
+
+@app.route('/convert/bvh-to-gltf', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('bvh', 'gltf'))
+def convert_bvh_to_gltf():
+    """Convert BVH to GLTF"""
+    return handle_conversion(request, 'bvh', 'gltf')
+
+@app.route('/convert/bvh-to-glb', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('bvh', 'glb'))
+def convert_bvh_to_glb():
+    """Convert BVH to GLB"""
+    return handle_conversion(request, 'bvh', 'glb')
+
+@app.route('/convert/bvh-to-vrm', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('bvh', 'vrm'))
+def convert_bvh_to_vrm():
+    """Convert BVH to VRM"""
+    return handle_conversion(request, 'bvh', 'vrm')
+
+@app.route('/convert/fbx-to-bvh', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('fbx', 'bvh'))
+def convert_fbx_to_bvh():
+    """Convert FBX to BVH"""
+    return handle_conversion(request, 'fbx', 'bvh')
+
+@app.route('/convert/obj-to-bvh', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('obj', 'bvh'))
+def convert_obj_to_bvh():
+    """Convert OBJ to BVH"""
+    return handle_conversion(request, 'obj', 'bvh')
+
+@app.route('/convert/gltf-to-bvh', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('gltf', 'bvh'))
+def convert_gltf_to_bvh():
+    """Convert GLTF to BVH"""
+    return handle_conversion(request, 'gltf', 'bvh')
+
+@app.route('/convert/glb-to-bvh', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('glb', 'bvh'))
+def convert_glb_to_bvh():
+    """Convert GLB to BVH"""
+    return handle_conversion(request, 'glb', 'bvh')
+
+@app.route('/convert/vrm-to-bvh', methods=['POST'])
+@rate_limit
+@swag_from(conversion_doc('vrm', 'bvh'))
+def convert_vrm_to_bvh():
+    """Convert VRM to BVH"""
+    return handle_conversion(request, 'vrm', 'bvh')
 
 @app.route('/health', methods=['GET'])
 def health_check():
