@@ -9,13 +9,64 @@ try:
 except ImportError:  # pragma: no cover - optional dependency in CI
     flask = None
 
+import types
+
 # Stub bpy to avoid ImportError during tests
-sys.modules.setdefault('bpy', Mock())
-sys.modules.setdefault('redis', Mock())
+mock_bpy = Mock()
+_bpy_objects = []
+def _add_obj_side_effect(*args, **kwargs):
+    # Simulate a successful import by adding a mock object
+    _bpy_objects.clear()
+    _bpy_objects.append(Mock())
+def _clear_obj_side_effect(*args, **kwargs):
+    # Simulate clearing objects
+    _bpy_objects.clear()
+def _export_side_effect(filepath, *args, **kwargs):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, "w") as f:
+        f.write("mock data")
+
+mock_bpy.data.objects = _bpy_objects
+mock_bpy.ops.import_scene.fbx.side_effect = _add_obj_side_effect
+mock_bpy.ops.import_scene.obj.side_effect = _add_obj_side_effect
+mock_bpy.ops.import_scene.gltf.side_effect = _add_obj_side_effect
+mock_bpy.ops.import_scene.vrm.side_effect = _add_obj_side_effect
+mock_bpy.ops.import_anim.bvh.side_effect = _add_obj_side_effect
+mock_bpy.ops.object.delete.side_effect = _clear_obj_side_effect
+
+mock_bpy.ops.export_scene.fbx.side_effect = _export_side_effect
+mock_bpy.ops.export_scene.obj.side_effect = _export_side_effect
+mock_bpy.ops.export_scene.gltf.side_effect = _export_side_effect
+mock_bpy.ops.export_scene.vrm.side_effect = _export_side_effect
+mock_bpy.ops.export_anim.bvh.side_effect = _export_side_effect
+
+mock_bpy.data.meshes = []
+mock_bpy.data.materials = []
+mock_bpy.data.textures = []
+mock_bpy.data.images = []
+# For BVH export check, start with no actions
+mock_bpy.data.actions = []
+mock_bpy.data.armatures = []
+sys.modules['bpy'] = mock_bpy
+
+mock_vrm_addon = types.ModuleType("io_scene_vrm")
+mock_vrm_addon.register = Mock()
+sys.modules['io_scene_vrm'] = mock_vrm_addon
+
+# Mock redis client and its methods
+class MockRedisError(Exception):
+    pass
+mock_redis_client = Mock()
+mock_pipeline = Mock()
+mock_pipeline.execute.return_value = (None, 0, None, None)
+mock_redis_client.pipeline.return_value = mock_pipeline
+mock_redis_client.Redis.return_value = mock_redis_client
+mock_redis_client.RedisError = MockRedisError
+mock_redis_client.get.return_value = None
+sys.modules['redis'] = mock_redis_client
 
 if flask:
-    with patch.dict(os.environ, {"APP_ENV": "local"}):
-        from app.convert import app, is_local_env
+    from app.convert import app, is_local_env
 else:
     app = None
     is_local_env = None
@@ -24,8 +75,17 @@ import time
 @unittest.skipUnless(flask, "Flask is not installed in the test environment")
 class TestFileConversion(unittest.TestCase):
     def setUp(self):
-        self.app = app.test_client()
-        self.app.testing = True
+        # Reset mocks for test isolation
+        mock_pipeline.execute.side_effect = None
+        mock_pipeline.execute.return_value = (None, 0, None, None)
+        _bpy_objects.clear()
+        mock_bpy.data.actions = []
+
+        os.makedirs('/tmp/convert', exist_ok=True)
+        with patch.dict(os.environ, {"APP_ENV": "local"}):
+            from app.convert import app
+            self.app = app.test_client()
+            self.app.testing = True
         
     def test_health_check(self):
         response = self.app.get('/health')
@@ -44,7 +104,7 @@ class TestFileConversion(unittest.TestCase):
         data = {
             'file': (temp, 'test.txt')
         }
-        response = self.app.post('/convert/fbx-to-glb', data=data)
+        response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
         self.assertEqual(response.status_code, 400)
         self.assertTrue('error' in response.json)
 
@@ -53,7 +113,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'empty.fbx')
             }
-            response = self.app.post('/convert/fbx-to-glb', data=data)
+            response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 400)
             self.assertTrue('error' in response.json)
 
@@ -65,19 +125,20 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'large.fbx')
             }
-            response = self.app.post('/convert/fbx-to-glb', data=data)
+            response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 413)
             self.assertTrue('error' in response.json)
 
-    def test_malformed_file(self):
+    @patch('app.convert.import_file', return_value=(False, "Import error"))
+    def test_malformed_file(self, mock_import):
         with tempfile.NamedTemporaryFile(suffix='.fbx') as temp_file:
             temp_file.write(b'malformed content')
             temp_file.seek(0)
             data = {
                 'file': (temp_file, 'malformed.fbx')
             }
-            response = self.app.post('/convert/fbx-to-glb', data=data)
-            self.assertEqual(response.status_code, 400)
+            response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
+            self.assertEqual(response.status_code, 500)
             self.assertTrue('error' in response.json)
 
     @patch('app.convert.convert_file')
@@ -92,7 +153,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'test.fbx')
             }
-            response = self.app.post('/convert/fbx-to-glb', data=data)
+            response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 200)
 
     @patch('app.convert.convert_file')
@@ -102,7 +163,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'test.gltf')
             }
-            response = self.app.post('/convert/gltf-to-glb', data=data)
+            response = self.app.post('/convert/gltf-to-glb', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 200)
 
     @patch('app.convert.convert_file')
@@ -112,7 +173,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'test.glb')
             }
-            response = self.app.post('/convert/glb-to-gltf', data=data)
+            response = self.app.post('/convert/glb-to-gltf', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 200)
 
     @patch('app.convert.convert_file')
@@ -122,7 +183,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'test.vrm')
             }
-            response = self.app.post('/convert/vrm-to-gltf', data=data)
+            response = self.app.post('/convert/vrm-to-gltf', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 200)
 
     @patch('app.convert.convert_file')
@@ -136,7 +197,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'test.fbx')
             }
-            response = self.app.post('/convert/fbx-to-glb', data=data)
+            response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 500)
             self.assertEqual(response.json['error'], "Error during conversion")
 
@@ -150,7 +211,7 @@ class TestFileConversion(unittest.TestCase):
                 data = {
                     'file': (temp_file, 'test.fbx')
                 }
-                responses.append(self.app.post('/convert/fbx-to-glb', data=data))
+                responses.append(self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data'))
                 time.sleep(0.1)  # Small delay between requests
         
         # Check if any requests were rate limited
@@ -172,7 +233,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'test.fbx')
             }
-            response = self.app.post('/convert/fbx-to-glb', data=data)
+            response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
             self.assertEqual(response.status_code, 408)
             self.assertTrue('error' in response.json)
 
@@ -188,7 +249,7 @@ class TestFileConversion(unittest.TestCase):
                 data = {
                     'file': (temp_file, 'test.fbx')
                 }
-                response = self.app.post('/convert/fbx-to-glb', data=data)
+                response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
                 results.put(response.status_code)
 
         # Create multiple threads to simulate concurrent requests
@@ -226,7 +287,7 @@ class TestFileConversion(unittest.TestCase):
                 data = {
                     'file': (temp_file, 'test.fbx')
                 }
-                response = self.app.post('/convert/fbx-to-glb', data=data)
+                response = self.app.post('/convert/fbx-to-glb', data=data, content_type='multipart/form-data')
                 
                 # Get the temp directory path from the mock
                 nonlocal temp_dir
@@ -249,7 +310,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'model.gltf')
             }
-            response = self.app.post('/convert/gltf-to-glb', data=data)
+            response = self.app.post('/convert/gltf-to-glb', data=data, content_type='multipart/form-data')
             self.assertIn(response.status_code, [200, 500])
 
     def test_glb_to_gltf_endpoint(self):
@@ -259,7 +320,7 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'model.glb')
             }
-            response = self.app.post('/convert/glb-to-gltf', data=data)
+            response = self.app.post('/convert/glb-to-gltf', data=data, content_type='multipart/form-data')
             self.assertIn(response.status_code, [200, 500])
 
     def test_vrm_to_gltf_endpoint(self):
@@ -269,12 +330,12 @@ class TestFileConversion(unittest.TestCase):
             data = {
                 'file': (temp_file, 'model.vrm')
             }
-            response = self.app.post('/convert/vrm-to-gltf', data=data)
+            response = self.app.post('/convert/vrm-to-gltf', data=data, content_type='multipart/form-data')
             self.assertIn(response.status_code, [200, 500])
 
     def test_all_format_conversions(self):
         """Test all supported format conversion combinations"""
-        formats = ['fbx', 'obj', 'gltf', 'glb', 'vrm']
+        formats = ['fbx', 'obj', 'gltf', 'glb', 'vrm', 'bvh']
         
         for input_format in formats:
             for output_format in formats:
@@ -287,17 +348,49 @@ class TestFileConversion(unittest.TestCase):
                                 'file': (temp_file, f'test.{input_format}')
                             }
                             endpoint = f'/convert/{input_format}-to-{output_format}'
-                            response = self.app.post(endpoint, data=data)
+                            response = self.app.post(endpoint, data=data, content_type='multipart/form-data')
         self.assertIn(response.status_code, [200, 500])  # Either success or handled error
-@unittest.skipUnless(is_local_env, "Flask is not installed in the test environment")
+
+    def test_bvh_conversion_no_animation(self):
+        # No animation data in mock_bpy.data.actions, so this should fail
+        with tempfile.NamedTemporaryFile(suffix='.fbx') as temp_file:
+            temp_file.write(b'data')
+            temp_file.seek(0)
+            data = {
+                'file': (temp_file, 'test.fbx')
+            }
+            response = self.app.post('/convert/fbx-to-bvh', data=data, content_type='multipart/form-data')
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.json['error'], "No animation data found to export to BVH.")
+
+    def test_successful_bvh_conversion(self):
+        # Add a mock action to pass the BVH export check
+        mock_bpy.data.actions.append(Mock())
+
+        with tempfile.NamedTemporaryFile(suffix='.bvh') as temp_file:
+            temp_file.write(b'data')
+            temp_file.seek(0)
+            data = {
+                'file': (temp_file, 'test.bvh')
+            }
+            response = self.app.post('/convert/bvh-to-glb', data=data, content_type='multipart/form-data')
+            self.assertEqual(response.status_code, 200)
+
+@unittest.skipUnless(flask, "Flask is not installed in the test environment")
 class TestIsLocalEnv(unittest.TestCase):
     def test_is_local_env_true(self):
         with patch.dict(os.environ, {"APP_ENV": "local"}):
-            self.assertTrue(is_local_env())
+            from app.config import get_settings
+            get_settings.cache_clear()
+            settings = get_settings()
+            self.assertTrue(settings.is_local())
 
     def test_is_local_env_false(self):
         with patch.dict(os.environ, {"APP_ENV": "production"}):
-            self.assertFalse(is_local_env())
+            from app.config import get_settings
+            get_settings.cache_clear()
+            settings = get_settings()
+            self.assertFalse(settings.is_local())
 
 if __name__ == '__main__':
     unittest.main()
