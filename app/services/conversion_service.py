@@ -67,7 +67,19 @@ def validate_file_format(file, format: str) -> Tuple[bool, Optional[str]]:
 
 
 def validate_file_size(file, max_file_size: int) -> Tuple[bool, Optional[str], bool]:
-    """設定上限に対してファイルサイズを検証する。"""
+    """
+    設定上限に対してファイルサイズを検証する。
+
+    Args:
+        file: サイズを検証するファイルオブジェクト。先頭から読み取り可能であることを想定する。
+        max_file_size: 許可される最大ファイルサイズ（バイト単位）。
+
+    Returns:
+        Tuple[bool, Optional[str], bool]:
+            - 1要素目: 検証結果。サイズが妥当であれば True。
+            - 2要素目: エラーメッセージ。不正な場合にメッセージ文字列、それ以外は None。
+            - 3要素目: 上限超過によるエラーかどうか。サイズが上限を超えている場合に True。
+    """
     file.seek(0, os.SEEK_END)
     size = file.tell()
     file.seek(0)
