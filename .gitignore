@@ -4,3 +4,11 @@
 .env
 # Ignore GLB files
 *.glb
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
