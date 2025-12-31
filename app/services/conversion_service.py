@@ -285,7 +285,57 @@ def process_conversion(
     clear_scene_fn: Callable,
     supported_formats: Dict[str, list] = SUPPORTED_FORMATS,
 ):
-    """検証・キャッシュ確認・変換実行・レスポンス生成までを統括する。"""
+    """
+    検証・キャッシュ確認・変換実行・レスポンス生成までを統括するハンドラ。
+
+    アップロードされたファイルを検証し、必要に応じてキャッシュを参照・保存しつつ
+    変換処理を実行し、Flask のレスポンスを返す。
+
+    Parameters
+    ----------
+    request :
+        Flask のリクエストオブジェクト。`request.files["file"]` から入力ファイルを取得する。
+    input_format : str
+        入力ファイルのフォーマット（拡張子など）。検証やログ出力に利用される。
+    output_format : str
+        変換後に生成したいフォーマット。
+    settings :
+        アプリケーション設定オブジェクト。タイムアウト・制限値などの設定を参照する。
+    redis_client :
+        キャッシュ用の Redis クライアントインスタンス。`get_cached_fn` / `cache_result_fn` で利用される想定。
+    convert_func : Callable
+        実際の変換処理を行うコールバック。
+        引数として一時ディレクトリや入力ファイルパスなどを取り、(success: bool, message: str) の
+        タプルを返すことを想定している。
+    validate_format_fn : Callable
+        ファイル形式の検証を行う関数。
+        シグネチャ例: `(file_storage, input_format) -> Tuple[bool, str]`
+        戻り値は (成功したか, エラーメッセージ)。
+    validate_size_fn : Callable
+        ファイルサイズの検証を行う関数。
+        シグネチャ例: `(file_storage) -> Tuple[bool, str, bool]`
+        戻り値は (成功したか, エラーメッセージ, サイズ超過かどうか)。
+    get_cached_fn : Callable
+        既存の変換結果をキャッシュから取得する関数。
+        シグネチャ例: `(cache_key, redis_client) -> Optional[bytes]` などを想定。
+    cache_result_fn : Callable
+        変換結果をキャッシュに保存する関数。
+        シグネチャ例: `(cache_key, data, redis_client) -> None` などを想定。
+    cleanup_fn : Callable
+        一時ディレクトリや一時ファイルを削除するためのクリーンアップ関数。
+        シグネチャ例: `(temp_dir: str) -> None`。
+    clear_scene_fn : Callable
+        Blender のシーンをクリアし、状態をリセットする関数。
+        変換処理後や例外発生時に呼び出されることを想定。
+    supported_formats : Dict[str, list], optional
+        サポートされている入力/出力フォーマットのマッピング。
+        既定値はモジュールレベルの `SUPPORTED_FORMATS`。
+
+    Returns
+    -------
+    flask.wrappers.Response or tuple
+        Flask のレスポンスオブジェクト、もしくは `(response, status_code)` のタプル。
+    """
     temp_dir = None
     try:
         logger.info(f"Starting conversion request: {input_format} -> {output_format}")
