@@ -1,4 +1,4 @@
-"""Environment-driven application settings without external dependencies."""
+"""外部依存なく環境変数から設定を読み込む。"""
 from __future__ import annotations
 
 import os
@@ -16,7 +16,7 @@ def _env_int(key: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class AppSettings:
-    """Centralized application configuration with basic validation."""
+    """アプリ設定を一元管理し、簡易バリデーションを行う。"""
 
     app_env: str = "development"
     redis_host: str = "redis"
@@ -56,5 +56,5 @@ class AppSettings:
 
 @lru_cache()
 def get_settings() -> AppSettings:
-    """Load settings from environment once per process."""
+    """環境変数から設定を読み込み、プロセス内で1回だけ評価する。"""
     return AppSettings.from_env()

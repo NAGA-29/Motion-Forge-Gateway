@@ -1,7 +1,5 @@
-"""Backwards-compatible import for configuration helpers.
+"""設定ヘルパー向けの後方互換インポートモジュール。
 
-Prefer using :mod:`app.config.settings` and ``get_settings`` directly.
-This module remains to avoid breaking existing imports while the
-application is being modularized.
+通常は :mod:`app.config.settings` と ``get_settings`` を直接利用する。
+モジュール分割中も既存のインポートを壊さないために残している。
 """
-
