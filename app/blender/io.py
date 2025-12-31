@@ -67,7 +67,25 @@ def import_file(input_path: str, file_format: str) -> Tuple[bool, Optional[str]]
 
 
 def export_file(output_path: str, file_format: str) -> Tuple[bool, Optional[str]]:
-    """現在のシーンを指定フォーマットでエクスポートし、(成功可否, メッセージ)を返す。"""
+    """
+    現在のシーンを指定フォーマットでエクスポートし、(成功可否, メッセージ)を返す。
+
+    Args:
+        output_path: エクスポート先のファイルパス。拡張子も含めた出力ファイルのフルパスを指定する。
+        file_format: 出力するファイルフォーマットを表す文字列。
+            サポートされている値は以下の通り:
+
+            - "fbx": FBX 形式
+            - "obj": OBJ 形式
+            - "gltf": glTF (GLTF_SEPARATE) 形式
+            - "glb": GLB (バイナリ glTF) 形式
+            - "vrm": VRM 形式
+            - "bvh": BVH アニメーション形式
+
+    Returns:
+        Tuple[bool, Optional[str]]: (成功可否, メッセージ) のタプル。
+            成功時は (True, None)、失敗時は (False, エラーメッセージ) を返す。
+    """
     try:
         logger.info(f"Exporting to {file_format}: {output_path}")
 
