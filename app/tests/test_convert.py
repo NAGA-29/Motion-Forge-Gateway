@@ -76,7 +76,10 @@ import time
 
 @unittest.skipUnless(flask, "Flask is not installed in the test environment")
 class TestFileConversion(unittest.TestCase):
+    """ファイル変換APIの入力検証・正常系・異常系を網羅するテスト群。"""
+
     def setUp(self):
+        """モックの初期化とFlaskテストクライアントの準備を行う。"""
         # Reset mocks for test isolation
         mock_pipeline.execute.side_effect = None
         mock_pipeline.execute.return_value = (None, 0, None, None)
@@ -90,16 +93,19 @@ class TestFileConversion(unittest.TestCase):
             self.app.testing = True
         
     def test_health_check(self):
+        """ヘルスチェックが200とhealthyを返すことを確認する。"""
         response = self.app.get('/health')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['status'], 'healthy')
 
     def test_no_file_provided(self):
+        """ファイル未指定時に400が返ることを確認する。"""
         response = self.app.post('/convert?output_format=glb')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['error'], 'No file provided')
 
     def test_invalid_file_format(self):
+        """未対応拡張子で400となることを確認する。"""
         temp = tempfile.NamedTemporaryFile(suffix='.txt')
         temp.write(b'data')
         temp.seek(0)
@@ -111,6 +117,7 @@ class TestFileConversion(unittest.TestCase):
         self.assertTrue('error' in response.json)
 
     def test_empty_file(self):
+        """空ファイルで400となることを確認する。"""
         with tempfile.NamedTemporaryFile(suffix='.fbx') as temp_file:
             data = {
                 'file': (temp_file, 'empty.fbx')
@@ -120,6 +127,7 @@ class TestFileConversion(unittest.TestCase):
             self.assertTrue('error' in response.json)
 
     def test_large_file(self):
+        """上限超過ファイルで413となることを確認する。"""
         # Create a large temporary file (100MB)
         with tempfile.NamedTemporaryFile(suffix='.fbx') as temp_file:
             temp_file.write(b'0' * 100 * 1024 * 1024)
@@ -133,6 +141,7 @@ class TestFileConversion(unittest.TestCase):
 
     @patch('app.convert.import_file', return_value=(False, "Import error"))
     def test_malformed_file(self, mock_import):
+        """インポート失敗時に500が返ることを確認する。"""
         with tempfile.NamedTemporaryFile(suffix='.fbx') as temp_file:
             temp_file.write(b'malformed content')
             temp_file.seek(0)
@@ -145,6 +154,7 @@ class TestFileConversion(unittest.TestCase):
 
     @patch('app.convert.convert_file_with_timeout')
     def test_successful_conversion(self, mock_convert):
+        """正常な変換で200が返ることを確認する。"""
         # Mock successful conversion
         def side_effect(input_path, output_path, input_format, output_format):
             with open(output_path, "w") as f:
@@ -165,9 +175,10 @@ class TestFileConversion(unittest.TestCase):
 
     @patch('app.convert.convert_file_with_timeout')
     def test_conversion_error(self, mock_convert):
+        """変換失敗時に500が返ることを確認する。"""
         # Mock conversion error
         mock_convert.return_value = (False, "Error during conversion")
-        
+
         with tempfile.NamedTemporaryFile(suffix='.fbx') as temp_file:
             temp_file.write(b'data')
             temp_file.seek(0)
@@ -179,6 +190,7 @@ class TestFileConversion(unittest.TestCase):
             self.assertEqual(response.json['error'], "Error during conversion")
 
     def test_rate_limit(self):
+        """レートリミットが適用されることを確認する。"""
         from app.config import get_settings
         settings = get_settings()
 
@@ -206,6 +218,7 @@ class TestFileConversion(unittest.TestCase):
 
     @patch('app.convert.convert_file_with_timeout')
     def test_timeout_handling(self, mock_convert):
+        """タイムアウト時に500と適切なエラーが返ることを確認する。"""
         # Mock a timeout during conversion
         mock_convert.return_value = (False, "Conversion timed out")
 
@@ -222,6 +235,7 @@ class TestFileConversion(unittest.TestCase):
             self.assertEqual(response.json['error'], "Conversion timed out")
 
     def test_concurrent_requests(self):
+        """複数スレッドからの同時リクエストをハンドリングできることを確認する。"""
         import threading
         import queue
         
@@ -258,6 +272,7 @@ class TestFileConversion(unittest.TestCase):
         self.assertTrue(all(code in [200, 429, 500] for code in status_codes))
 
     def test_conversion_doc(self):
+        """Swagger用ドキュメント定義が期待通りであることを確認する。"""
         from app.convert import conversion_doc
         doc = conversion_doc('fbx', 'glb')
         self.assertEqual(doc['tags'], ['conversion'])
@@ -333,7 +348,10 @@ class TestFileConversion(unittest.TestCase):
 
 @unittest.skipUnless(flask, "Flask is not installed in the test environment")
 class TestIsLocalEnv(unittest.TestCase):
+    """is_localの判定を検証するテスト。"""
+
     def test_is_local_env_true(self):
+        """APP_ENV=localでTrueになることを確認する。"""
         with patch.dict(os.environ, {"APP_ENV": "local"}):
             from app.config import get_settings
             get_settings.cache_clear()
@@ -341,6 +359,7 @@ class TestIsLocalEnv(unittest.TestCase):
             self.assertTrue(settings.is_local())
 
     def test_is_local_env_false(self):
+        """APP_ENV=productionでFalseになることを確認する。"""
         with patch.dict(os.environ, {"APP_ENV": "production"}):
             from app.config import get_settings
             get_settings.cache_clear()
