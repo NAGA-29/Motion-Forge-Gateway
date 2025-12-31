@@ -11,7 +11,13 @@ logger = AppLogger.get_logger(__name__)
 
 
 def handle_blender_error(error_type, value, tb):
-    """Blender実行中の未処理例外を捕捉し、ログ出力とシーン初期化を試みたうえで再送出する。"""
+    """Blender実行中の未処理例外を捕捉し、ログ出力とシーン初期化を試みたうえで再送出する。
+
+    Args:
+        error_type: 発生した例外クラス（`BaseException` を継承した型）。`sys.excepthook` の第1引数に相当する。
+        value: 発生した例外インスタンス。`sys.excepthook` の第2引数に相当する。
+        tb: 例外発生時のトレースバックオブジェクト。`sys.excepthook` の第3引数に相当し、`traceback.format_tb()` でフォーマット可能なオブジェクト。
+    """
     error_msg = f"Blender error: {error_type.__name__}: {value}"
     logger.error(error_msg)
     logger.error("Traceback:")
