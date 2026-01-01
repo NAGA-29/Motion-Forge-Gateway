@@ -118,5 +118,5 @@ class AppLogger:
         else:
             logger = logging.getLogger(name)
 
-        logger.debug("Logger retrieved for %s", name)
+        logger.debug(f"Logger retrieved for {name}")
         return logger
