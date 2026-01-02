@@ -1,6 +1,7 @@
 import sys
 import time
 import traceback
+import threading
 from datetime import datetime
 from functools import wraps
 
@@ -25,6 +26,7 @@ from app.services.conversion_service import (
     validate_file_size,
 )
 from app.utils.logger import AppLogger
+from app.utils.memory_profiler import init_memory_profiling, log_memory_snapshot
 
 app_settings = get_settings()
 
@@ -233,7 +235,22 @@ def health_check():
     )
 
 
+# Background task for memory profiling
+stop_event = threading.Event()
+
+def memory_profiling_task():
+    """Periodically logs memory usage."""
+    while not stop_event.is_set():
+        log_memory_snapshot()
+        stop_event.wait(60)  # Log every 60 seconds
+
 if __name__ == "__main__":
+    init_memory_profiling()
+
+    # Start the memory profiling background thread
+    profiling_thread = threading.Thread(target=memory_profiling_task, daemon=True)
+    profiling_thread.start()
+
     try:
         success, error = initialize_blender()
         if not success:
@@ -252,4 +269,9 @@ if __name__ == "__main__":
     except Exception as exc:
         logger.error(f"Fatal error: {exc}")
         logger.error(traceback.format_exc())
+    finally:
+        # Stop the background thread
+        stop_event.set()
+        profiling_thread.join()
+        logger.info("Memory profiling thread stopped.")
         sys.exit(1)
