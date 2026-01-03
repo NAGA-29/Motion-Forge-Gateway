@@ -3,6 +3,8 @@ from app.utils.logger import AppLogger
 
 logger = AppLogger.get_logger(__name__)
 
+TOP_MEMORY_STATS_COUNT = 10
+
 def init_memory_profiling():
     """
     Initializes tracemalloc to monitor memory allocations if it is not already running.
@@ -25,6 +27,6 @@ def log_memory_snapshot():
     snapshot = tracemalloc.take_snapshot()
     top_stats = snapshot.statistics('lineno')
 
-    logger.info("Top 10 memory usage stats:")
-    for stat in top_stats[:10]:
+    logger.info(f"Top {TOP_MEMORY_STATS_COUNT} memory usage stats:")
+    for stat in top_stats[:TOP_MEMORY_STATS_COUNT]:
         logger.info(stat)

@@ -1,7 +1,7 @@
 import unittest
 import tracemalloc
 from unittest.mock import patch, MagicMock, call
-from app.utils.memory_profiler import init_memory_profiling, log_memory_snapshot
+from app.utils.memory_profiler import init_memory_profiling, log_memory_snapshot, TOP_MEMORY_STATS_COUNT
 
 class TestMemoryProfiler(unittest.TestCase):
 
@@ -45,18 +45,22 @@ class TestMemoryProfiler(unittest.TestCase):
         tracemalloc.start()
         mock_snapshot = MagicMock()
         mock_stat = "mock_stat_line"
-        mock_snapshot.statistics.return_value = [mock_stat] * 5
+        # TOP_MEMORY_STATS_COUNTより多い統計をシミュレート
+        mock_snapshot.statistics.return_value = [mock_stat] * (TOP_MEMORY_STATS_COUNT + 5)
         mock_take_snapshot.return_value = mock_snapshot
 
         log_memory_snapshot()
 
         mock_take_snapshot.assert_called_once()
         mock_snapshot.statistics.assert_called_with('lineno')
-        expected_calls = [
-            call("Top 10 memory usage stats:"),
-            call(mock_stat), call(mock_stat), call(mock_stat), call(mock_stat), call(mock_stat),
-        ]
-        mock_logger.info.assert_has_calls(expected_calls)
+
+        # ログメッセージが定数を使用していることを確認します
+        expected_first_call = call(f"Top {TOP_MEMORY_STATS_COUNT} memory usage stats:")
+        # 統計情報が正しい回数ログに記録されたことを確認します
+        self.assertEqual(mock_logger.info.call_count, TOP_MEMORY_STATS_COUNT + 1)
+        # 最初の呼び出しが期待通りであることを確認します
+        self.assertEqual(mock_logger.info.call_args_list[0], expected_first_call)
+
 
     @patch('tracemalloc.take_snapshot')
     @patch('app.utils.memory_profiler.logger')
