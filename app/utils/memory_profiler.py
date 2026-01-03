@@ -17,8 +17,8 @@ def init_memory_profiling():
 
 def log_memory_snapshot():
     """
-    Takes a snapshot of memory usage and logs the top 10 memory-consuming lines,
-    if tracemalloc is running.
+    Takes a snapshot of memory usage and logs the top N (TOP_MEMORY_STATS_COUNT)
+    memory-consuming lines, if tracemalloc is running.
     """
     if not tracemalloc.is_tracing():
         logger.warning("Cannot take memory snapshot because tracemalloc is not running.")
