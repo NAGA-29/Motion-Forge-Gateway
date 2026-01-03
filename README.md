@@ -40,6 +40,8 @@ docker run -p 5000:5000 blender-converter
 | `LOG_LEVEL` | ログ出力レベル | `INFO` |
 | `LOG_FORMAT` | `plain` または `json` 形式のログフォーマット | `plain` |
 | `LOG_FILE` | ログを出力するファイルパス(任意) | - |
+| `ENABLE_MEMORY_PROFILING` | メモリプロファイリングを有効化 (`true`で有効) | `false` |
+| `MEMORY_PROFILING_INTERVAL` | メモリプロファイリングの実行間隔(秒) | `60` |
 
 `APP_ENV` が `local` の場合、`is_local_env()` ヘルパーは `True` を返します。
 ローカル環境向けの条件分岐に利用できます。

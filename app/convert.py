@@ -240,16 +240,22 @@ stop_event = threading.Event()
 
 def memory_profiling_task():
     """Periodically logs memory usage."""
+    interval = app_settings.memory_profiling_interval
     while not stop_event.is_set():
-        log_memory_snapshot()
-        stop_event.wait(60)  # Log every 60 seconds
+        try:
+            log_memory_snapshot()
+        except Exception as e:
+            logger.error(f"Error in memory profiling task: {e}")
+        finally:
+            # Wait for the interval before the next run, even if an error occurred.
+            stop_event.wait(interval)
 
 if __name__ == "__main__":
-    init_memory_profiling()
-
-    # Start the memory profiling background thread
-    profiling_thread = threading.Thread(target=memory_profiling_task, daemon=True)
-    profiling_thread.start()
+    profiling_thread = None
+    if app_settings.enable_memory_profiling:
+        init_memory_profiling()
+        profiling_thread = threading.Thread(target=memory_profiling_task, daemon=True)
+        profiling_thread.start()
 
     exit_code = 0
     try:
@@ -277,9 +283,10 @@ if __name__ == "__main__":
         logger.error(traceback.format_exc())
         exit_code = 1
     finally:
-        # Stop the background thread
-        stop_event.set()
-        profiling_thread.join()
-        logger.info("Memory profiling thread stopped.")
+        # Stop the background thread if it was started
+        if profiling_thread:
+            stop_event.set()
+            profiling_thread.join()
+            logger.info("Memory profiling thread stopped.")
 
     sys.exit(exit_code)
