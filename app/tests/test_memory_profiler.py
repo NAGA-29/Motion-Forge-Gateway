@@ -73,5 +73,21 @@ class TestMemoryProfiler(unittest.TestCase):
         mock_take_snapshot.assert_not_called()
         mock_logger.warning.assert_called_with("Cannot take memory snapshot because tracemalloc is not running.")
 
+    @patch('tracemalloc.take_snapshot')
+    @patch('app.utils.memory_profiler.logger')
+    def test_log_memory_snapshot_handles_runtime_error(self, mock_logger, mock_take_snapshot):
+        """
+        take_snapshotがRuntimeErrorを発生させた場合にlog_memory_snapshotがエラーを記録することをテストします。
+        """
+        tracemalloc.start()
+        error_message = "test error"
+        mock_take_snapshot.side_effect = RuntimeError(error_message)
+
+        log_memory_snapshot()
+
+        mock_take_snapshot.assert_called_once()
+        mock_logger.error.assert_called_with(f"Failed to take memory snapshot: {error_message}")
+
+
 if __name__ == '__main__':
     unittest.main()

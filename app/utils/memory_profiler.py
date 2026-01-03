@@ -24,7 +24,12 @@ def log_memory_snapshot():
         logger.warning("Cannot take memory snapshot because tracemalloc is not running.")
         return
 
-    snapshot = tracemalloc.take_snapshot()
+    try:
+        snapshot = tracemalloc.take_snapshot()
+    except RuntimeError as e:
+        logger.error(f"Failed to take memory snapshot: {e}")
+        return
+
     top_stats = snapshot.statistics('lineno')
 
     logger.info(f"Top {TOP_MEMORY_STATS_COUNT} memory usage stats:")
