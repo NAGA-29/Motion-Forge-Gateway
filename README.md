@@ -16,6 +16,25 @@ docker compose up
 ```
 起動後は `http://localhost:5000/` で API が利用できます。
 
+### Blender イメージの差し替え
+Blender は `linuxserver/blender` をベースにしています。必要に応じてビルド引数で変更できます。  
+[linuxserver/blender](https://hub.docker.com/r/linuxserver/blender)
+
+```bash
+docker build --build-arg BLENDER_IMAGE=linuxserver/blender:latest -t blender-converter .
+```
+
+### アーキテクチャ別の起動
+ARM64 / x86_64 混在環境向けに、Compose の上書きファイルを用意しています。
+
+```bash
+# x86_64 (amd64) で起動
+docker compose -f docker-compose.yml -f docker-compose.amd64.yml up --build
+
+# ARM64 で起動
+docker compose -f docker-compose.yml -f docker-compose.arm64.yml up --build
+```
+
 ### 単体での Docker 実行例
 ```bash
 docker build -t blender-converter .
@@ -39,6 +58,7 @@ docker run -p 5000:5000 blender-converter
 | `LOG_LEVEL` | ログ出力レベル | `INFO` |
 | `LOG_FORMAT` | `plain` または `json` 形式のログフォーマット | `plain` |
 | `LOG_FILE` | ログを出力するファイルパス(任意) | - |
+| `BLENDER_FACTORY_RESET` | ファクトリーリセットを有効化する (`1/true/yes/on`) | `0` |
 
 `APP_ENV` が `local` の場合、`is_local_env()` ヘルパーは `True` を返します。
 ローカル環境向けの条件分岐に利用できます。
@@ -172,7 +192,11 @@ API ドキュメントを閲覧できます。
 ## テストの実行方法
 Blender 付属の `bpy` モジュールが必要です。Docker 環境上で次のコマンドを実行します。
 ```bash
-PYTHONPATH=./app python -m unittest discover app/tests
+docker compose exec api bash -lc '
+APP_ROOT=/workspace/app
+BLENDER_PYTHON="$(blender --background --python-expr "import sys; print(sys.executable)" | awk "/\\/python/ {print; exit}")"
+PYTHONPATH="$APP_ROOT" "$BLENDER_PYTHON" -m unittest discover -s "$APP_ROOT/tests" -t "$APP_ROOT"
+'
 ```
 
 ネットワーク制限で依存パッケージ（Flask 等）が取得できない環境では、一部テストが
@@ -181,7 +205,10 @@ PYTHONPATH=./app python -m unittest discover app/tests
 ### Lint
 `ruff` を導入しています。
 ```bash
-PYTHONPATH=./app ruff check .
+docker compose exec api bash -lc '
+APP_ROOT=/workspace/app
+PYTHONPATH="$APP_ROOT" ruff check "$APP_ROOT"
+'
 ```
 
 ## 各ファイル形式の仕様リンク
@@ -209,6 +236,10 @@ PYTHONPATH=./app ruff check .
   - フォーマット: [BVH File Format](https://research.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/BVH.html)
   - パーサー: [bvh-python]
   - 資料: [東京都立大学 Mukai Laboratory の資料](https://mukai-lab.org/content/MotionCaptureDataFile.pdf)
+
+- **OpenUSD**  
+  - フォーマット: [OpenUSD Documentation](https://openusd.org/)
+  - パーサー: [usd-python](https://github.com/PixarAnimationStudios/USD)
 
 ---
 

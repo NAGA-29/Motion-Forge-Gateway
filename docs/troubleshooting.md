@@ -68,18 +68,11 @@ Blender 5.0系には FBX インポート時のクラッシュが報告されて�
 
 **修正方法**:
 
-`Dockerfile`を編集して、Blenderのバージョンを変更します:
+Dockerfile は `linuxserver/blender` をベースにしています。バージョンを変える場合は
+ビルド引数 `BLENDER_IMAGE` を差し替えます。
 
-```dockerfile
-# Blender 5.0.1 から 4.2 LTS に変更
-RUN wget https://download.blender.org/release/Blender4.2/blender-4.2.3-linux-x64.tar.xz   \
-    && tar -xf blender-4.2.3-linux-x64.tar.xz \
-    && mv blender-4.2.3-linux-x64 /usr/local/blender \
-    && rm blender-4.2.3-linux-x64.tar.xz
-
-# 環境変数も更新
-ENV BLENDER_PYTHON="${BLENDER_PATH}/4.2/python/bin/python3.11"
-ENV PYTHONPATH="/usr/local/blender/4.2/scripts/addons:${PYTHONPATH}"
+```bash
+docker build --build-arg BLENDER_IMAGE=linuxserver/blender:latest -t blender-converter .
 ```
 
 変更後、イメージを再ビルド:
@@ -104,6 +97,15 @@ docker compose logs -f api
 - `Writing: /tmp/blender.crash.txt` - Blenderがクラッシュした証拠
 - `ERROR` レベルのメッセージ
 - Python のトレースバック
+
+##### 1.1 ファクトリーリセットの無効化を試す
+
+`bpy.ops.wm.read_factory_settings` 実行時にクラッシュする場合があります。必要に応じて
+環境変数で無効化してください（既定は無効です）。
+
+```bash
+BLENDER_FACTORY_RESET=0 docker compose up --build
+```
 
 ##### 2. Blenderのクラッシュログを確認する
 
