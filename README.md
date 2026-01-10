@@ -144,12 +144,23 @@ curl -F "file=@animation.fbx" \
 - 永続キャッシュ: `/tmp/convert_cache` に変換結果をコピーしてパスを Redis に保存。ディスク容量とクリーンアップは運用で管理してください。
 - 拡張: 環境変数は表の通り。`APP_ENV=local` でローカル向け挙動に切り替わり、テスト時はモックが利用されます。
 
+## トラブルシューティング
+
+APIの使用中に問題が発生した場合は、[トラブルシューティングガイド](docs/troubleshooting.md)を参照してください。
+
+よくある問題:
+- [curl エラー26: ファイルパスの指定ミス](docs/troubleshooting.md#エラー26-failed-to-openread-local-data-from-fileapplication)
+- [curl エラー52: サーバークラッシュ](docs/troubleshooting.md#エラー52-empty-reply-from-server)
+- [400/413/429/500エラー](docs/troubleshooting.md#その他のよくあるエラー)
+- [パフォーマンス問題](docs/troubleshooting.md#パフォーマンス問題)
+
 ## 制約 / FAQ
 - Blender 依存: 変換は Blender のアドオン/オペレーターを使用。Blenderの対応フォーマット以外は非対応。
 - 同期実行: `/convert` は同期で処理するため大きなファイルではリクエスト待ちが発生。ジョブキュー化は未実装。
 - Windows: SIGALRM 非使用だが、Blender バイナリ依存のため Windows 動作は未検証。
 - BVH の注意: アニメーションが無いとエクスポート失敗。VRM はアドオン必須。
 - キャッシュ無効化: 今は未実装。手動で `/tmp/convert_cache` と Redis キー `conversion:*` を削除してください。
+- Blenderのクラッシュ: 複雑または破損したFBXファイルでBlenderがクラッシュする場合があります。その場合は、より単純なモデルを使用するか、別のツールで事前に修復してください。
 
 詳細な手順や[運用ガイド](docs/manual/manual.md)を参照してください。
 
@@ -198,8 +209,14 @@ PYTHONPATH=./app ruff check .
   - フォーマット: [BVH File Format](https://research.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/BVH.html)
   - パーサー: [bvh-python]
   - 資料: [東京都立大学 Mukai Laboratory の資料](https://mukai-lab.org/content/MotionCaptureDataFile.pdf)
+
 ---
-## TODO リスト (将来実装予定)
+
+## 開発ヒント
+- [Blender Python API ドキュメント](https://docs.blender.org/api/current/index.html)
+- [Blender の python向けライブラリ `bpy` リスト](https://download.blender.org/pypi/bpy/)
+
+## 開発ロードマップ
 
 ### パフォーマンスの最適化
 - [ ] 大きなファイルを処理する際のメモリ使用量監視機能
