@@ -240,6 +240,7 @@ PYTHONPATH="$APP_ROOT" ruff check "$APP_ROOT"
 - **OpenUSD**  
   - フォーマット: [OpenUSD Documentation](https://openusd.org/)
   - パーサー: [usd-python](https://github.com/PixarAnimationStudios/USD)
+  - 実装状況: **計画中（未実装）**。現在は `app/services/conversion_service.py` の `SUPPORTED_FORMATS` に OpenUSD が含まれていません。対応状況は [開発ロードマップ](#開発ロードマップ) を参照してください。
 
 ---
 
